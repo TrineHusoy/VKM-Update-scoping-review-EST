@@ -3,6 +3,10 @@
 This repository contains date and the R script used to clean data files for making Figure 3.1-1., Figure 3.3.4-1., Figure 3.3.4-2. and Figure 3.3.4-3. in the scoping review.
 Version in Zenodo
 
+## Files
+
+The R code to celan the data and create the figures
+[Konsistensmidler_Figurer_040325.Rmd](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Code/Konsistensmidler_Figurer_040325.Rmd)
 
 ## Abstract
 
