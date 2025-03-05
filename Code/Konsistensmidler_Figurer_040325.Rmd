@@ -1,0 +1,711 @@
+---
+title: "Konsistensmidler information request"
+author: "Trine Husøy"
+date: "2024-11-18"
+output:
+  word_document:
+    toc: true
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+  pdf_document:
+    toc: true
+fontsize: 10pt
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  comment = "#>", echo = TRUE, warning = FALSE, error = FALSE, message = FALSE, fig.width = 6)
+```
+
+# Loading packages
+
+To get the ggsanky package I needed to install a development version from github, which needed devtools.
+```{r}
+
+#install.packages("patchwork")
+
+library(ggplot2)
+library(openxlsx)
+library(tidyverse)
+library(ggsankey)
+library(patchwork)
+```
+
+# Get work directory and organise results
+
+```{r}
+
+HOME <- "C:/Users/TRHU/Documents/R_projects/Fig_oppdate_konsistens"
+setwd(HOME)
+
+```
+
+Create a folder with current date in the Result folder
+```{r}
+
+newday <- file.path('C:/Users/TRHU/Documents/R_projects/Fig_oppdate_konsistens/Results', Sys.Date())
+dir.create(newday)
+
+```
+
+
+# Read in data
+```{r}
+request <- read_csv2("./Data/Konsistensmiddler_information_request.csv")
+animal <- read_csv2("./Data/Data_animal_030325.csv")
+human <- read.csv2("./Data/Data_human_030325.csv")
+
+
+```
+
+# Data cleaning
+
+## Sankey plot
+
+Prepare data file for the Sankey plot by changing the name of the content in the coloumns and the heading of the coloumns.
+
+```{r}
+
+
+request <- as_tibble(request)
+
+request <- request %>% 
+  rename(`No e-mail` = `No email for corresponding author in publication/ Email for corresponding author no longer working`)
+
+request$`No e-mail`[is.na(request$`No e-mail`)] <- "y" # Need to change NA's to y, because if_else don't work with NA's
+request$`No answer`[is.na(request$`No answer`)] <- "y"
+request$Answer[is.na(request$Answer)] <- "y"
+
+request <- request %>% 
+  mutate(Request = if_else(`No e-mail`== "x", "No e-mail (N = 119)",
+                           if_else(`No answer`== "x", "No answer (N = 36)", "Answer (N = 31)")))
+
+request <- request %>% 
+  mutate(Status =if_else(`Included/ excluded` == "Include", "Include (N = 5)", "Exclude (N = 26)"))
+
+
+request$Source <- "Publications (N=186)"
+
+
+
+```
+
+The next code organise the data to make it suitable as input for ggsankey package, to make the Sankey plot. 
+```{r}
+
+s1 <- request$Source
+
+s2 <- request$Request
+
+s3 <- request$Status
+
+
+
+
+d <- data.frame(cbind(s1,s2,s3))
+names(d) <- c('Source', 
+              'Request', 
+              'Status')
+
+
+df <- d%>%
+  make_long(Source, 
+           Request, 
+           Status
+           )
+```
+
+## Animal and human data
+
+
+### Cleaning the animal data with regard to the chemical tested
+
+Delete rows and columns with only NAs
+```{r}
+# animal data
+animal <- animal[,1:11] #select the columns with data
+animal <- animal[1:42,] # select the rows
+
+```
+
+
+
+```{r}
+# Here I search for the different substances in the text of the coloumn `Substance, dose and exposure frequency`, and make a new coloumn
+# with the heading of the substance and with "yes" or "no" if the study testing the substance.
+
+animal_substance <- animal %>%  select(1:3, 10) # Select the coloums I will use to get which chemical is tested
+
+animal_substance <- na.omit(animal_substance) # delete the rows with NAs
+
+animal_substance <- animal_substance %>% 
+  mutate(`Carrageenan (E 407)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Carrageenan"), "yes", "No"))
+
+animal_substance <- animal_substance %>% 
+  mutate(`Carboxymethyl cellulose (E 466)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Carboxymethyl cellulose"), "yes", "No"))
+
+animal_substance <- animal_substance %>% 
+  mutate(`Agar (E 406)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Agar"), "yes", "No"))
+  
+animal_substance <- animal_substance %>% 
+  mutate(`Guar gum (E 412)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Guar gum"), "yes", "No"))
+
+animal_substance <- animal_substance %>% 
+  mutate(`Sodium alginate (E 401)`= if_else(str_detect(`Substance, dose and exposure frequency`, "alginate"), "yes", "No")) 
+
+animal_substance <- animal_substance %>% 
+  mutate(`Eucheuma seaweed (E 407a)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Eucheuma seaweed"), "yes", "No"))
+
+animal_substance <- animal_substance %>% 
+  mutate(`Gellan gum (E 418)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Gellan gum"), "yes", "No"))
+
+animal_substance <- animal_substance %>% 
+  mutate(`Xanthan gum (E 415)`= if_else(str_detect(`Substance, dose and exposure frequency`, "Xanthan gum"), "yes", "No"))
+
+
+animal_substance <- dplyr::select(animal_substance, c(!`Substance, dose and exposure frequency`)) # Delete the messy coloumn `Substance, dose and exposure frequency`
+animal_substance <- dplyr::select(animal_substance, c(!`Primary study`))
+
+animal_substance_long <- animal_substance %>% pivot_longer(
+  cols = "Carrageenan (E 407)":"Xanthan gum (E 415)",
+  names_to = "Substance",
+  values_to = "Included"
+)
+
+animal_substance_long<- animal_substance_long %>% 
+  filter(Included == "yes")
+
+animal_substance_long$species <- "animal"
+
+
+animal_substance_long <- animal_substance_long %>% 
+  mutate(Year_cat = if_else(Year < 1993, 
+                            "<1993",
+                            if_else(Year >= 1994 & Year <= 2003, 
+                                    "1994-2003",
+                                    if_else(Year >= 2004 & Year <= 2013, 
+                                            "2004-2013",
+                                            if_else(Year >= 2014 & Year <= 2024, 
+                                                    "2014-2024", 
+                                                    "False")))))
+
+
+
+
+```
+
+### Cleaning the human data with regard to the chemical tested
+
+```{r}
+human <- human[1:5,] # select rows
+
+
+```
+
+
+```{r}
+
+human_substance <- human %>% dplyr::select(c("Reference", "Year", "Substance"))
+
+human_substance <- human_substance %>% 
+  mutate(`Carrageenan (E 407)`= if_else(str_detect(Substance, "Carrageenan"), "yes", "No"))
+
+human_substance <- human_substance %>% 
+  mutate(`Carboxymethyl cellulose (E 466)`= if_else(str_detect(Substance, "Carboxymethyl cellulose"), "yes", "No"))
+
+human_substance <- human_substance %>% 
+  mutate(`Agar (E 406)`= if_else(str_detect(Substance, "Agar"), "yes", "No"))
+  
+human_substance <- human_substance %>% 
+  mutate(`Guar gum (E 412)`= if_else(str_detect(Substance, "Guar gum"), "yes", "No"))
+
+human_substance <- human_substance %>% 
+  mutate(`Sodium alginate (E 401)`= if_else(str_detect(Substance, "alginate"), "yes", "No")) 
+
+human_substance <- human_substance %>% 
+  mutate(`Eucheuma seaweed (E 407a)`= if_else(str_detect(Substance, "Eucheuma seaweed"), "yes", "No"))
+
+human_substance <- human_substance %>% 
+  mutate(`Gellan gum (E 418)`= if_else(str_detect(Substance, "Gellan gum"), "yes", "No"))
+
+human_substance <- human_substance %>% 
+  mutate(`Xanthan gum (E 415)`= if_else(str_detect(Substance, "Xanthan gum"), "yes", "No"))
+
+human_substance <- dplyr::select(human_substance, c(!Substance))
+
+human_substance_long <- human_substance %>% pivot_longer(
+  cols = "Carrageenan (E 407)":"Xanthan gum (E 415)",
+  names_to = "Substance",
+  values_to = "Included"
+)
+
+human_substance_long<- human_substance_long %>% 
+  filter(Included == "yes")
+
+human_substance_long$species <- "human"
+
+
+human_substance_long <- human_substance_long %>% 
+  mutate(Year_cat = if_else(Year < 1993, 
+                            "<1993",
+                            if_else(Year >= 1994 & Year <= 2003, 
+                                    "1994-2003",
+                                    if_else(Year >= 2004 & Year <= 2013, 
+                                            "2004-2013",
+                                            if_else(Year >= 2014 & Year <= 2024, 
+                                                    "2014-2024", 
+                                                    "False")))))
+```
+
+
+
+### Combine the data sets
+
+```{r}
+# Combine the data file for animals and humans
+
+animal_human_substance_year <- rbind(animal_substance_long, human_substance_long)
+```
+
+Save the Excel file
+
+```{r}
+write.xlsx(animal_human_substance_year,
+           file = file.path(newday,"animal_human_substance_year.xlsx"),
+           colNames = TRUE, borders = "rows"
+)
+```
+
+
+### Cleaning the animal data with regard to the health outcome
+
+```{r}
+animal_outcome <- animal
+
+animal_outcome <- animal_outcome %>% # delete row nr 5
+  slice(-5)
+
+animal_outcome <- animal_outcome %>% 
+  select("Reference", "Year", "Outcome as reported") # Select the coloumns of interest
+
+animal_outcome <- animal_outcome %>% 
+  slice(-19)
+
+
+animal_outcome <- animal_outcome %>% # Fill in the NA cells with the content of the cells above
+  fill(Reference, .direction = "down")
+animal_outcome <- animal_outcome %>% 
+  fill(Year, .direction = "down")
+
+
+```
+
+
+The standardised outcome categories were misspelled, not harmonised etc, and therefore the outcome were categorised to coloumns with harmonised outcome names. These can be used to make a long table and the names will be simmilar and can be counted
+```{r}
+animal_outcome <- animal_outcome %>% 
+  mutate(`Changes in gut microbiota composition or number of bacteria`= if_else(str_detect(`Outcome as reported`, "Changes in gut microbiota"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Enzymatic activity (digestive, microbial, cell proliferation, inflammation)`= if_else(str_detect(`Outcome as reported`, "Enzymatic activity"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Faecal or caecal content weight, colour, consistency, viscosity`= if_else(str_detect(`Outcome as reported`, "Faecal or caecal content"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Intestinal permeability (markers in serum)`= if_else(str_detect(`Outcome as reported`, "Intestinal permeability"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Intestinal utilisation and fermentation of nutrients`= if_else(str_detect(`Outcome as reported`, "Intestinal utilisation"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Macroscopic changes (stomach, small intestine, colon)`= if_else(str_detect(`Outcome as reported`, "Macroscopic changes"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Microscopic changes (digestive tract) including inflammation`= if_else(str_detect(`Outcome as reported`, "Microscopic changes"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Mucosal weight, content (colon)`= if_else(str_detect(`Outcome as reported`, "Mucosal weight"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Presence of blood or mucus in faeces`= if_else(str_detect(`Outcome as reported`, "Presence of blood"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Tumour promotion in cancer-induced mice (genetic or chemical)`= if_else(str_detect(`Outcome as reported`, "Tumour"), "yes", "No"))
+
+animal_outcome <- animal_outcome %>% 
+  mutate(`Weight, length of stomach, small intestine, large intestine`= if_else(str_detect(`Outcome as reported`, "Weight"), "yes", "No"))
+
+# The original "outcome" coloumn is deleted and a new one is made based on the headings of the new coloumns by making a long table
+
+animal_outcome <- dplyr::select(animal_outcome, c(!`Outcome as reported`))
+
+animal_outcome <- animal_outcome %>% pivot_longer(
+  cols = "Changes in gut microbiota composition or number of bacteria":"Weight, length of stomach, small intestine, large intestine",
+  names_to = "outcome",
+  values_to = "Included"
+)
+
+animal_outcome <- animal_outcome %>% 
+  filter(Included == "yes")
+
+animal_outcome_wide <- animal_outcome %>% pivot_wider(
+  names_from = "outcome",
+  values_from = "Included"
+)
+
+
+```
+
+
+Merge the animal tables with substance_year and substance_outcome. 
+```{r}
+animal_outcome_substance <- inner_join(animal_outcome, animal_substance_long, by = "Reference")
+animal_outcome_substance <- animal_outcome_substance %>% select("Reference", "Year.x", "Substance", "species", "outcome")
+colnames(animal_outcome_substance) <- c("Reference", "Year", "Substance", "Species", "Outcome")
+```
+
+Save the Excel file
+
+```{r}
+write.xlsx(animal_outcome_substance,
+           file = file.path(newday,"animal_outcome_substance.xlsx"),
+           colNames = TRUE, borders = "rows"
+)
+```
+
+
+### Cleaning the human data with regard to the health outcome
+
+```{r}
+human_outcome <- human
+
+human_outcome <- human_outcome %>% 
+  select("Reference", "Year", "Outcome") # Select the coloumns of interest
+
+```
+
+```{r}
+human_outcome <- human_outcome %>% 
+  mutate(`Gastric emptying (time and frequency)`= if_else(str_detect(`Outcome`, "Gastric"), "yes", "No"))
+
+human_outcome <- human_outcome %>% 
+  mutate(`Faecal weight and consistency`= if_else(str_detect(`Outcome`, "Faecal"), "yes", "No"))
+
+human_outcome <- human_outcome %>% 
+  mutate(`Satiety and appetite`= if_else(str_detect(`Outcome`, "Satiety"), "yes", "No"))
+
+human_outcome <- human_outcome %>% 
+  mutate(`Glucose and insulin homeostasis`= if_else(str_detect(`Outcome`, "glucose"), "yes", "No"))
+
+human_outcome <- dplyr::select(human_outcome, c(!`Outcome`))
+
+
+human_outcome <- human_outcome %>% pivot_longer(
+  cols = "Gastric emptying (time and frequency)":"Glucose and insulin homeostasis",
+  names_to = "outcome",
+  values_to = "Included"
+)
+
+human_outcome <- human_outcome %>% 
+  filter(Included == "yes")
+
+human_outcome_wide <- human_outcome %>% pivot_wider(
+  names_from = "outcome",
+  values_from = "Included"
+)
+
+
+```
+
+
+Merge the animal tables with substance_year and substance_outcome. 
+```{r}
+human_outcome_substance <- inner_join(human_outcome, human_substance_long, by = "Reference")
+human_outcome_substance <- human_outcome_substance %>% select("Reference", "Year.x", "Substance", "species", "outcome")
+colnames(human_outcome_substance) <- c("Reference", "Year", "Substance", "Species", "Outcome")
+
+```
+
+Save the Excel file
+
+```{r}
+write.xlsx(human_outcome_substance,
+           file = file.path(newday,"human_outcome_substance.xlsx"),
+           colNames = TRUE, borders = "rows"
+)
+```
+
+
+# Make figures data extraction
+
+## Figure substance and year of publication
+
+```{r}
+
+
+counts <- animal_human_substance_year %>% 
+  count(Substance, Year_cat)
+
+marginal_counts_Year <- counts %>%
+  group_by(Year_cat) %>%
+  summarise(n = sum(n))
+
+marginal_counts_Substance <- counts %>%
+  group_by(Substance) %>%
+  summarise(n = sum(n))
+
+year_seq <- c("<1993", "1994-2003", "2004-2013", "2014-2024")
+substance_seq <- c("Agar (E 406)", "Carboxymethyl cellulose (E 466)", "Carrageenan (E 407)", "Eucheuma seaweed (407)", "Gellan gum (E 418)", "Sodium alginate (E 401)", "Xanthan gum (E 415)")
+
+
+Heat_map_subst_year <- ggplot(counts, aes(Year_cat, Substance)) +
+  geom_tile(aes(fill = n)) +
+  geom_text(aes(label = round(n, 1))) +
+  scale_fill_gradient(low = "lightblue", high = "olivedrab")+
+  scale_x_discrete(limits = year_seq)+
+  theme_minimal() +
+  labs(x = "Time period (year)", y = "EST")+
+  theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11), axis.title.x = element_text(size = 16, face =  "bold"), axis.title.y = element_text(size = 16, face =  "bold"), legend.position = "none")  # Move legend below the plot
+
+Heat_map_subst_year
+
+p_bar_Year <- ggplot(marginal_counts_Year, aes(x = Year_cat, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab4") +
+  labs(x = "Year", y = "No. of studies \nper time period across EST") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  scale_x_discrete(limits = year_seq)+
+  theme_minimal() + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank(), axis.text.y = element_text(size = 11), axis.title.y = element_text(size = 16, face = "bold"))
+
+p_bar_Year
+
+p_bar_substance_year <- ggplot(marginal_counts_Substance, aes(x = Substance, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab") +
+  labs(x = " Substance", y = "No. of studies\ntesting each EST") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  coord_flip() +
+  theme_minimal() + 
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank(), axis.text.x = element_text(size = 11), axis.title.x = element_text(size = 16, face =  "bold"))
+  
+
+p_bar_substance_year
+
+
+
+
+# Combine the plots using patchwork
+Heat_bar_plot <- (p_bar_Year+ plot_spacer() + plot_layout(ncol = 2, heights = c(1, 0.1))) / 
+                    (Heat_map_subst_year | p_bar_substance_year + plot_spacer()) +
+  plot_layout(widths = c(4, 1))
+
+Heat_bar_plot
+
+ggsave(filename=file.path(newday, "Heat_bar_plot.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
+
+
+
+
+```
+
+## Figure substance and  outcome in animals
+```{r}
+
+
+counts2 <- animal_outcome_substance %>% 
+  count(Substance, `Outcome`)
+
+marginal_counts_outcome <- counts2 %>%
+  group_by(`Outcome`) %>%
+  summarise(n = sum(n))
+
+marginal_counts_Substance2 <- counts2 %>%
+  group_by(Substance) %>%
+  summarise(n = sum(n))
+
+
+Heat_outcom_subs_animal <- ggplot(counts2, aes(Substance, Outcome)) +
+  geom_tile(aes(fill = n)) +
+  geom_text(aes(label = round(n, 1))) +
+  scale_fill_gradient(low = "lightblue", high = "olivedrab")+
+  #scale_x_discrete(limits = year_seq)+
+  theme_minimal() +
+  labs(x = "EST", y = "Endpoint")+
+  theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 0.75, hjust=0.75 ), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 16, face =  "bold"), axis.title.y = element_text(size = 14, face =  "bold"), legend.position = "none")  # Move legend below the plot
+
+Heat_outcom_subs_animal
+
+p_bar_outcome <- ggplot(marginal_counts_outcome, aes(x = Outcome, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab4") +
+  labs(x = "Endpoint", y = "No. of studies \nper endpoint accross EST") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  coord_flip() +
+  #scale_x_discrete(limits = year_seq)+
+  theme_minimal() + 
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank(), axis.text.x = element_text(size = 12), axis.title.x = element_text(size = 14, face =  "bold"))
+
+p_bar_outcome
+
+p_bar_Substance2 <- ggplot(marginal_counts_Substance2, aes(x = Substance, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab") +
+  labs(x = "EST", y = "No. of studies per EST \naccross endpoints") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  theme_minimal() + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank(), axis.text.y = element_text(size = 12), axis.title.y = element_text(size = 14, face = "bold"))
+  
+  
+
+p_bar_Substance2
+
+
+# Combine the plots using patchwork
+Heat_bar_outcome_animals <- (p_bar_Substance2+ plot_spacer() + plot_layout(ncol = 2, heights = c(1, 0.1))) / 
+                    (Heat_outcom_subs_animal | p_bar_outcome + plot_spacer()) +
+  plot_layout(widths = c(4, 1))
+
+Heat_bar_outcome_animals
+
+ggsave(filename=file.path(newday, "Heat_bar_outcome_animals.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
+
+
+```
+
+## Figure substance and  outcome in humans
+```{r}
+
+
+counts3 <- human_outcome_substance %>% 
+  count(Substance, `Outcome`)
+
+marginal_counts_outcome <- counts3 %>%
+  group_by(`Outcome`) %>%
+  summarise(n = sum(n))
+
+marginal_counts_Substance2 <- counts3 %>%
+  group_by(Substance) %>%
+  summarise(n = sum(n))
+
+
+Heat_outcom_subs_human <- ggplot(counts3, aes(Substance, Outcome)) +
+  geom_tile(aes(fill = n)) +
+  geom_text(aes(label = round(n, 1))) +
+  scale_fill_gradient(low = "lightblue", high = "olivedrab")+
+  #scale_x_discrete(limits = year_seq)+
+  theme_minimal() +
+  labs(x = "EST", y = "Endpoint")+
+  theme(axis.text.x = element_text(size = 12, angle = 45, vjust = 0.75, hjust=0.75 ), axis.text.y = element_text(size = 12), axis.title.x = element_text(size = 14, face =  "bold"), axis.title.y = element_text(size = 14, face =  "bold"), legend.position = "none")  # Move legend below the plot
+
+Heat_outcom_subs_human
+
+p_bar_outcome <- ggplot(marginal_counts_outcome, aes(x = Outcome, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab4") +
+  labs(x = "Endpoint", y = "No. of studies \nper endpoint accross EST") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  coord_flip() +
+  #scale_x_discrete(limits = year_seq)+
+  theme_minimal() + 
+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank(), axis.text.x = element_text(size = 12), axis.title.x = element_text(size = 14, face =  "bold"))
+
+p_bar_outcome
+
+p_bar_Substance2 <- ggplot(marginal_counts_Substance2, aes(x = Substance, y = n)) +
+  geom_bar(stat = "identity", fill = "olivedrab") +
+  labs(x = " Substance", y = "No. of studies per EST \naccross endpoint") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5))+
+  theme_minimal() + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank(), axis.text.y = element_text(size = 12), axis.title.y = element_text(size = 14, face = "bold"))
+  
+  
+
+p_bar_Substance2
+
+
+# Combine the plots using patchwork
+Heat_bar_outcome_humans <- (p_bar_Substance2+ plot_spacer() + plot_layout(ncol = 2, heights = c(1, 0.1))) / 
+                    (Heat_outcom_subs_human | p_bar_outcome + plot_spacer()) +
+  plot_layout(widths = c(4, 1))
+
+Heat_bar_outcome_humans
+
+ggsave(filename=file.path(newday, "Heat_bar_outcome_humans.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
+
+
+```
+
+
+# Make Sankey plot
+
+```{r}
+
+
+pl <- df %>% drop_na(node) %>% # This remowes the NA's before making the Sankey plot. 
+  ggplot(aes(x = x,                        
+                     next_x = next_x,                                     
+                     node = node,
+                     next_node = next_node,        
+                     fill = factor(node),
+                     label = node))            # This Creates a label for each node
+
+
+                     
+pl <- pl +geom_sankey(flow.alpha = 0.5,          #This Creates the transparency of your node 
+                      node.color = "black",     # This is your node color        
+                      show.legend = TRUE)        # This determines if you want your legend to show
+
+pl <- pl + geom_sankey_label(size = 5, 
+                             color = "black", 
+                             fill = "white") # This specifies the Label format for each node 
+
+
+
+pl <- pl + theme(legend.position = 'none')
+pl <- pl + theme(axis.title = element_blank(),
+                 axis.text.y = element_blank(),
+                 axis.ticks = element_blank(),
+                 panel.grid = element_blank(),
+                 axis.text.x = element_text(size = 20))
+
+
+pl <- pl + scale_fill_viridis_d(option = "magma")
+
+
+pl
+
+
+ggsave(filename=file.path(newday, "pl.jpeg"),
+       device = NULL,
+       width=NA,
+       height=NA,
+       units="mm")
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
