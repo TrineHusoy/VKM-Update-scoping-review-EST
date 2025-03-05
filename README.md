@@ -1,6 +1,10 @@
 # Supplementary material for: Update of the scoping review of research on gastrointestinal effects of selected emulsifiers, stabilisers, and thickeners 
 
-## Summary
+This repository contains date and the R script used to clean data files for making Figure 3.1-1., Figure 3.3.4-1., Figure 3.3.4-2. and Figure 3.3.4-3. in the scoping review.
+Version in Zenodo
+
+
+## Abstract
 
 This scoping review was commissioned by the Norwegian Food Safety Authority. The aim was to update a previous scoping review of research literature on the effects of emulsifiers, stabilisers and thickeners (EST) on the gastrointestinal (GI) tract, specifically agar (E 406), sodium alginate (E 401), carrageenan (E 407), processed Eucheuma seaweed (E 407a), sodium carboxymethyl cellulose (E 466), gellan gum (E 418), guar gum (E 412), and xanthan gum (E 415). A scoping review contrasts with a safety evaluation that consists of assessment of biological and chemical properties, potential toxicity of any organ, and dietary exposure estimates. This scoping review maps any studies that reported effects, whether they are beneficial, neutral or adverse, on the GI tract. It does not report on measures of the strength of the relationship between EST exposures and effects on the GI tract. 
 
