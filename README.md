@@ -7,9 +7,18 @@ This repository contains data and the R script used to clean data files for maki
 The R code to clean the data and create the figures  
 [Konsistensmidler_Figurer_040325.Rmd](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Code/Konsistensmidler_Figurer_040325.Rmd)
 
-
 The excel file with all the raw data. The sheets used as a starting point for the figures and uploaded in the R code are included as csv files below  
 [Supplementary materials 1.xlsx](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Data/Supplementary%20materials%201.xlsx)
+
+The raw data for the animal studies as a csv file  
+[Data_animal_030325.csv](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Data/Data_animal_030325.csv)
+
+The raw data for the human studies as a csv file  
+[Data_human_030325.csv](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Data/Data_human_030325.csv)
+
+The raw data for the information requests as a csv file  
+[Konsistensmiddler_information_request.csv](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Data/Konsistensmiddler_information_request.csv)
+
 
 
 ## Abstract
