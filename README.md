@@ -4,7 +4,7 @@ This repository contains data and the R script used to clean data files for maki
 
 ## Files
 
-The R code to clean the data and create the figures 
+The R code to clean the data and create the figures  
 [Konsistensmidler_Figurer_040325.Rmd](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Code/Konsistensmidler_Figurer_040325.Rmd)
 
 
