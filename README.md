@@ -19,7 +19,7 @@ The raw data for the human studies as a csv file
 The raw data for the information requests as a csv file  
 [Konsistensmiddler_information_request.csv](https://github.com/TrineHusoy/VKM-Update-scoping-review-EST/blob/main/Data/Konsistensmiddler_information_request.csv)
 
-
+In the "Results"  folder you find the output from the R code, cleaned excel files and the figures.
 
 ## Abstract
 
