@@ -39,7 +39,7 @@ library(patchwork)
 
 ```{r}
 
-HOME <- "C:/Users/TRHU/Documents/R_projects/Fig_oppdate_konsistens"
+HOME <- "Insert your own directory"
 setwd(HOME)
 
 ```
@@ -47,7 +47,7 @@ setwd(HOME)
 Create a folder with current date in the Result folder
 ```{r}
 
-newday <- file.path('C:/Users/TRHU/Documents/R_projects/Fig_oppdate_konsistens/Results', Sys.Date())
+newday <- file.path('Insert your own directory/Results', Sys.Date())
 dir.create(newday)
 
 ```
