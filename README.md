@@ -1,6 +1,6 @@
 # Supplementary material for: Update of the scoping review of research on gastrointestinal effects of selected emulsifiers, stabilisers, and thickeners 
 
-This repository contains data and the R script used to clean data files for making Figure 3.1-1., Figure 3.3.4-1., Figure 3.3.4-2. and Figure 3.3.4-3. in the scoping review.Version in Zenodo DOI: 10.5281/zenodo.15044491
+This repository contains data and the R script used to clean data files for making Figure 3.1-1., Figure 3.3.4-1., Figure 3.3.4-2. and Figure 3.3.4-3. in the scoping review.Version in Zenodo (DOI: 10.5281/zenodo.15044491)
 
 ## Files
 
